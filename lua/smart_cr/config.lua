@@ -2,6 +2,15 @@ local M = {}
 
 -- default configuration
 local default_config = {
+	bracket_cr = {
+		enabled = true,
+		bracket_pairs = {
+			['('] = ')',
+			['['] = ']',
+			['{'] = '}',
+			['<'] = '>',
+		}
+	}
 }
 
 local config = vim.deepcopy(default_config)
