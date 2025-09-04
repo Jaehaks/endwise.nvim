@@ -28,7 +28,7 @@ end
 -- it would ignore any indentexpr process of ftplugin
 M.bracket_cr = function()
 	-- do not any
-	if not bracket_cr.enabled and not Parser.is_brackets(bracket_cr.bracket_pairs) then
+	if not bracket_cr.enabled or not Parser.is_brackets(bracket_cr.bracket_pairs) then
 		return false
 	end
 
