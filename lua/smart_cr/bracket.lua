@@ -1,6 +1,7 @@
 local M = {}
 local Config = require('smart_cr.config')
 local Parser = require('smart_cr.parser')
+local Utils = require('smart_cr.utils')
 
 -- Check if the current cursor position is within the parentheses
 ---@type smart_cr.config.bracket_cr
@@ -8,16 +9,6 @@ local bracket_cr = {}
 M.update_bracket_rules = function ()
 	bracket_cr = Config.get().bracket_cr
 end
-
--- Create an indented white spaces, if 8, 8 spaces if expandtab, or 2 tabs if notexpandtab with 4 shift-width
----@param level integer the number of spaces to set indent before text
----@return string string includes indented characters
-local function create_indent(level)
-	local indent_char = vim.bo.expandtab and ' ' or '\t'
-	local indent_size = vim.bo.expandtab and level or level/vim.bo.shiftwidth
-	return string.rep(indent_char, indent_size)
-end
-
 
 --[[
 	make bracket
@@ -38,9 +29,9 @@ M.bracket_cr = function()
 	-- get cursor / indent information
 	local lnum, col         = unpack(vim.api.nvim_win_get_cursor(0))
 	local prev_indent_count = vim.fn.indent(lnum)
-	local prev_indent       = create_indent(prev_indent_count)
+	local prev_indent       = Utils.create_indent(prev_indent_count)
 	local cur_indent_count  = prev_indent_count + vim.bo.shiftwidth
-	local cur_indent        = create_indent(cur_indent_count)
+	local cur_indent        = Utils.create_indent(cur_indent_count)
 
 	-- split text before/after cursor
 	local text   = vim.api.nvim_get_current_line()
