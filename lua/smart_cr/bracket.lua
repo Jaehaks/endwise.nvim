@@ -3,6 +3,7 @@ local Config = require('smart_cr.config')
 local Parser = require('smart_cr.parser')
 
 -- Check if the current cursor position is within the parentheses
+---@type smart_cr.config.bracket_cr
 local bracket_cr = {}
 M.update_bracket_rules = function ()
 	bracket_cr = Config.get().bracket_cr
@@ -10,6 +11,7 @@ end
 
 -- Create an indented white spaces, if 8, 8 spaces if expandtab, or 2 tabs if notexpandtab with 4 shift-width
 ---@param level integer the number of spaces to set indent before text
+---@return string string includes indented characters
 local function create_indent(level)
 	local indent_char = vim.bo.expandtab and ' ' or '\t'
 	local indent_size = vim.bo.expandtab and level or level/vim.bo.shiftwidth
@@ -26,6 +28,7 @@ end
 --]]
 -- <CR> with indented cursor / new line
 -- it would ignore any indentexpr process of ftplugin
+---@return boolean Whether this function is executed
 M.bracket_cr = function()
 	-- do not any
 	if not bracket_cr.enabled or not Parser.is_brackets(bracket_cr.bracket_pairs) then

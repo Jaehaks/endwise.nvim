@@ -20,7 +20,8 @@ M.is_node = function(targets)
 	return nil
 end
 
-
+-- check the cursor is inside of brackets
+---@param bracket_pairs table<string, string> check smart_cr.config.bracket_cr
 ---@return boolean Whether cursor is in brackets
 M.is_brackets = function(bracket_pairs)
 	local text = vim.api.nvim_get_current_line()  -- all text that includes '\t' or ' ' indent of current line

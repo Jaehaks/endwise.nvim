@@ -1,6 +1,12 @@
 local M = {}
 
+---@class smart_cr.config.bracket_cr
+---@field enabled boolean
+---@field bracket_pairs table<string, string>
+
 -- default configuration
+---@class smart_cr.config
+---@field bracket_cr smart_cr.config.bracket_cr
 local default_config = {
 	bracket_cr = {
 		enabled = true,
