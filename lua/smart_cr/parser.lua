@@ -1,4 +1,5 @@
 local M = {}
+
 -- check current node under cursor is target_node
 ---@param targets string|table target node to check this region under cursor is the node
 --- @return TSNode? Object of treesitter tree
