@@ -34,8 +34,8 @@ M.is_brackets = function(ctx, bracket_pairs)
 		open_pattern = open_pattern .. vim.pesc(open)
 		close_pattern = close_pattern .. vim.pesc(close)
 	end
-	open_pattern = '([' .. open_pattern .. '])'
-	close_pattern = '([' .. close_pattern .. '])'
+	open_pattern = '([' .. open_pattern .. '])%s*$'
+	close_pattern = '^%s*([' .. close_pattern .. '])'
 
 	local before_bracket = ctx.before:match('.*' .. open_pattern) -- matched before bracket which is closed to cursor
 	local after_bracket = ctx.after:match(close_pattern) -- matched after bracket which is closed to cursor
