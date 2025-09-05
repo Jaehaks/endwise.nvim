@@ -22,15 +22,10 @@ M.is_node = function(targets)
 end
 
 -- check the cursor is inside of brackets
+---@param ctx smart_cr.ctx
 ---@param bracket_pairs table<string, string> check smart_cr.config.bracket_cr
 ---@return boolean Whether cursor is in brackets
-M.is_brackets = function(bracket_pairs)
-	local text = vim.api.nvim_get_current_line()  -- all text that includes '\t' or ' ' indent of current line
-	local col = vim.api.nvim_win_get_cursor(0)[2] -- (row, col-1) index
-
-	-- Check the characters before and after the cursor
-	local before = text:sub(1, col)      -- get string before cursor
-	local after = text:sub(col+1, #text) -- get string after cursor
+M.is_brackets = function(ctx, bracket_pairs)
 
 	-- get bracket pattern to match
 	local open_pattern = ''
@@ -42,8 +37,8 @@ M.is_brackets = function(bracket_pairs)
 	open_pattern = '([' .. open_pattern .. '])'
 	close_pattern = '([' .. close_pattern .. '])'
 
-	local before_bracket = before:match('.*' .. open_pattern) -- matched before bracket which is closed to cursor
-	local after_bracket = after:match(close_pattern) -- matched after bracket which is closed to cursor
+	local before_bracket = ctx.before:match('.*' .. open_pattern) -- matched before bracket which is closed to cursor
+	local after_bracket = ctx.after:match(close_pattern) -- matched after bracket which is closed to cursor
 
 	-- Check open and closed parentheses pairs
 	if before_bracket and after_bracket and after_bracket == bracket_pairs[before_bracket] then
