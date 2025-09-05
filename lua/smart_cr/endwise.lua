@@ -1,0 +1,123 @@
+local M = {}
+local Config = require('smart_cr.config')
+local Parser = require('smart_cr.parser')
+local Utils = require('smart_cr.utils')
+
+-- endwise rules for current buffer's filetype
+---@type EndwiseRules
+local endwise_rules = {}
+
+---@class EndwordLists
+---@field [string] EndwordList[] filetype is used for key
+
+---@alias EndwordList table<string, string> = table<filetype, endword>
+
+---@type EndwordLists
+local endword_lists = {}
+
+-- update rules
+M.update_endwise_rules = function ()
+	endwise_rules = Config.get().endwise_cr.rules
+	for ft, T in pairs(endwise_rules) do
+		endword_lists[ft] = {}
+		for _, rule in ipairs(T) do
+			local node_names = rule[3]
+			local endword = rule[2]
+			for _, node_name in ipairs(node_names) do
+				endword_lists[ft][node_name] = endword
+			end
+		end
+		endword_lists[ft]['ERROR'] = nil
+	end
+end
+
+-- check whether line contents is matched with this pattern
+---@param line string line contents
+---@param pattern string regex pattern
+local function is_matched(line, pattern)
+	return line:match(pattern) ~= nil
+end
+
+-- check this line is possible to add endwise
+---@param line string
+---@param rule rule
+---@param endwordlist EndwordList
+---@return string? endword
+local function is_valid(line, rule, endwordlist)
+
+	-- check current line regex is endwise candidate
+	if not is_matched(line, rule.pattern) then
+		return nil
+	end
+
+	-- check current line has endwise already
+	local node = Parser.is_node(rule.ts_nodes)
+	if not node then
+		vim.print('not node')
+		return nil
+	end
+	vim.print(node:type())
+
+	local endword = Parser.is_endwised(node, rule.endword, endwordlist)
+	if not endword then
+		vim.print('already endwised')
+		return nil
+	end
+
+	return endword
+end
+
+-- <CR> with endwise
+---@return boolean Whether this function is executed
+M.endwise_cr = function()
+	-- check enabled
+	if not Config.get().endwise_cr.enabled then
+		vim.print('not enabled')
+		return false
+	end
+
+	-- don't apply endwise if no rules for filetype
+	local rules = endwise_rules[vim.bo.filetype]
+	if not rules then
+		vim.print('no rules')
+		return false
+	end
+	local endwordlist = endword_lists[vim.bo.filetype]
+
+	-- check endwise pattern
+	---@class rule
+	---@field pattern string
+	---@field endword string
+	---@field ts_nodes string[]
+	local rule = {}
+	local ctx = Utils.get_cursorinfo()
+	for _, r in ipairs(rules) do
+		rule.pattern, rule.endword, rule.ts_nodes = unpack(r)
+
+		if is_valid(ctx.line, rule, endwordlist) then
+			-- add endword
+			vim.api.nvim_buf_set_lines(0, ctx.lnum-1, ctx.lnum, false, {
+				ctx.before,
+				ctx.cur_indent,
+				ctx.prev_indent .. rule.endword,
+			})
+			vim.api.nvim_win_set_cursor(0, {ctx.lnum+1, ctx.cur_indent_count+1})
+			return true
+		end
+	end
+
+	return false
+end
+
+
+M.get_rules = function(target)
+	if target == 'endwise_rules' then
+		return endwise_rules
+	elseif target == 'endword_lists' then
+		return endword_lists
+	end
+end
+
+
+
+return M

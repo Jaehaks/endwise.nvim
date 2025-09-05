@@ -1,22 +1,93 @@
 local M = {}
 
 -- check current node under cursor is target_node
----@param targets string|table target node to check this region under cursor is the node
---- @return TSNode? Object of treesitter tree
+---@param targets table target node to check this region under cursor is the node
+---@return TSNode? Object of treesitter tree
 M.is_node = function(targets)
-	-- make type of targets to table
-	if type(targets) == 'string' then
-		targets = { targets }
+	-- use get_parser():parse() to update treesitter result manually.
+	local parser = vim.treesitter.get_parser()
+	if not parser then -- if treesitter is not existed in this language
+		return nil
+	end
+	parser:parse() -- update parse
+
+	-- get current node
+	local snode = vim.treesitter.get_node({ignore_injections = false})
+	if not snode then
+		return nil
 	end
 
-	local snode = vim.treesitter.get_node({ignore_injections = false})
-	while snode do
-		local node_name = snode:type()
-		if vim.tbl_contains(targets, node_name) then
-			return snode
-		end
-		snode = snode:parent()
+	-- get current cursor position
+	local cursor = vim.api.nvim_win_get_cursor(0)
+	cursor[1] = cursor[1] - 1
+
+	-- check current node is worth checking,
+	-- if line is not start node, don't add endwise, like comment / comment block / wrong endwise
+	local start_row = snode:range()
+	if start_row ~= cursor[1] then
+		return nil
 	end
+
+	if vim.tbl_contains(targets, snode:type()) then
+		return snode
+	end
+
+	return nil
+end
+
+---@param snode TSNode start node
+---@param endword string rule.endword
+---@param endwordlist EndwordList endword list of current filetype
+---@return string? endword of snode
+M.is_endwised = function(snode, endword, endwordlist)
+
+	local range_snode = {snode:range()}
+
+	-- add endword for ERROR node
+	local _endwordlist = endwordlist
+	_endwordlist['ERROR'] = endword
+
+	-- check current node has wrong end
+	local pnode = snode:parent()
+	while pnode do
+		-- if endword is not existed
+		local endword_snode = vim.treesitter.get_node_text(snode, 0)
+		local has_endword = vim.endswith(endword_snode, endword) -- don't use word from vim.inspect
+		if not has_endword then
+			return endword
+		end
+
+		if _endwordlist[pnode:type()] then
+			local range_pnode = {pnode:range()}
+
+			vim.print('(snode)' .. snode:type() .. ' : ' .. '{' .. range_snode[1] .. ' ' .. range_snode[2] .. ' ' .. range_snode[3] .. ' ' .. range_snode[4] .. '}')
+			-- vim.print('(snode) : ' .. vim.inspect(vim.treesitter.get_node_text(snode, 0)))
+			vim.print('(snode) : ' .. tostring(snode:end_()))
+			vim.print('(pnode)' .. pnode:type() .. ' : ' .. '{' .. range_pnode[1] .. ' ' .. range_pnode[2] .. ' ' .. range_pnode[3] .. ' ' .. range_pnode[4] .. '}')
+			-- vim.print('(pnode) : ' .. vim.inspect(vim.treesitter.get_node_text(pnode, 0)))
+			vim.print('(pnode) : ' .. tostring(pnode:end_()))
+
+			if (range_pnode[3] == range_snode[3]) then -- if two node has same row at end
+				return endword
+			end
+			snode = pnode
+		end
+		pnode = pnode:parent()
+	end
+
+	-- -- get lower node at cursor line
+	-- local lower = nil
+	-- for child in snode:iter_children() do
+	-- 	range = {child:range()}
+	-- 	if (range[1] <= cursor[1] and range[3] >= cursor[1]) and
+	-- 	   (range[2] <= cursor[2] and range[4] >= cursor[2]) then
+	--
+	-- 	   -- vim.print(child:type() .. ' ' .. cursor[1] .. ' ' .. cursor[2])
+	-- 	   --
+	-- 	   lower = child
+	-- 	   break
+	--    end
+	-- end
 
 	return nil
 end
