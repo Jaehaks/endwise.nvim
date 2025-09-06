@@ -58,7 +58,7 @@ local function is_valid(line, rule, endwordlist)
 	end
 	vim.print(node:type())
 
-	local endword = Parser.is_endwised(node, rule.endword, endwordlist)
+	local endword = Parser.is_endwised(node, endwordlist)
 	if not endword then
 		vim.print('already endwised')
 		return nil
@@ -93,6 +93,7 @@ M.endwise_cr = function()
 	local ctx = Utils.get_cursorinfo()
 	for _, r in ipairs(rules) do
 		rule.pattern, rule.endword, rule.ts_nodes = unpack(r)
+		endwordlist['currentnode'] = rule.endword -- add current node's endword
 
 		if is_valid(ctx.line, rule, endwordlist) then
 			-- add endword
