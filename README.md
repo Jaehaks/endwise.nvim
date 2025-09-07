@@ -144,17 +144,16 @@ To implement this, you can set keymap like this
 
 ```lua
 vim.keymap.set('i', '<CR>', function()
+  -- The order of calls order between bracket and endwise doesn't matter
+  -- you can use 'endwise_cr()' independently
+  local bracket = require('smart_cr').bracket.bracket_cr()
   local endwise = require('smart_cr').endwise.endwise_cr()
 
-  if endwise then
+  if not bracket and not endwise then
   vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
   end
 end, { noremap = true, silent = true, desc = 'Smart enter' })
 ```
-
-
-> [!CAUTION]
-> Until now, Integration between `bracket_cr()` and `endwise_cr()` don't be implemented.
 
 I know there are endwise plugins already, the reason I created this is
 because the previous ones were unreliable to use or configure as I think.

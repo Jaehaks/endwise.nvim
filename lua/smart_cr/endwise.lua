@@ -105,7 +105,7 @@ M.endwise_cr = function()
 			vim.api.nvim_buf_set_lines(0, ctx.lnum-1, ctx.lnum, false, {
 				ctx.before,
 				ctx.cur_indent,
-				ctx.prev_indent .. rule.endword,
+				ctx.prev_indent .. rule.endword .. ctx.after,
 			})
 			vim.api.nvim_win_set_cursor(0, {ctx.lnum+1, ctx.cur_indent_count+1})
 			return true
