@@ -9,11 +9,13 @@ local M = {}
 ---@field parent string node name of parent
 
 
+---@alias smart_cr.bfs.nodefunc fun(node:smart_cr.bfs.queue.item, endwordlist:EndwordList?, memory:table?): table?
 
 -- do func() for all children nodes using breadth-first-search
 ---@param root TSNode
 ---@param endwordlist EndwordList? endword list of current filetype
----@param func fun(node:smart_cr.bfs.queue.item, endwordlist:EndwordList?, memory:table?): table?
+-- -@param func fun(node:smart_cr.bfs.queue.item, endwordlist:EndwordList?, memory:table?): table?
+---@param func smart_cr.bfs.nodefunc
 local function for_nodes(root, endwordlist, func)
 
 	---@type smart_cr.bfs.queue
@@ -103,7 +105,7 @@ M.is_node = function(targets)
 	cursor[1] = cursor[1] - 1
 
 	-- get child belongs to {target} at cursor line
-	---@param item smart_cr.bfs.queue.item
+	---@type smart_cr.bfs.nodefunc
 	local function get_child_node(item)
 		local node = item.node
 		local start_row = node:range()
@@ -133,15 +135,12 @@ M.is_endwised = function(snode, endwordlist)
 	if not root then
 		return nil
 	end
-	vim.print('root -- ' .. root:type())
 
 	-- add 'ERROR' node to check endword
 	local endword = endwordlist['currentnode']
 	local _endwordlist = vim.tbl_deep_extend('keep', {ERROR = endword}, endwordlist)
 
-	---@param item smart_cr.bfs.queue.item
-	---@param ewlist EndwordList
-	---@param memory table
+	---@type smart_cr.bfs.nodefunc
 	local function check_endword(item, ewlist, memory)
 		local node = item.node
 
