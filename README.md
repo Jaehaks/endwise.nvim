@@ -53,6 +53,7 @@ require('smart_cr').setup({
 
 ## 1) `<CR>` inside of brackets
 
+case1) empty parentheses
 ```lua
 -- before
 a = {|}
@@ -61,6 +62,16 @@ a = {|}
 a = {
   |
 }
+```
+
+case2) non-empty parentheses
+```lua
+-- before
+a = {aa |bb}
+
+-- after
+a = {aa
+  |bb}
 ```
 
 To implement this, you can set keymap like this
