@@ -27,7 +27,6 @@ M.update_endwise_rules = function ()
 				endword_lists[ft][node_name] = endword
 			end
 		end
-		endword_lists[ft]['ERROR'] = nil
 	end
 end
 
@@ -53,14 +52,13 @@ local function is_valid(line, rule, endwordlist)
 	-- check current line has endwise already
 	local node = Parser.is_node(rule.ts_nodes)
 	if not node then
-		vim.print('not node')
+		-- vim.print('not node')
 		return nil
 	end
-	vim.print(node:type())
 
 	local endword = Parser.is_endwised(node, endwordlist)
 	if not endword then
-		vim.print('already endwised')
+		-- vim.print('already endwised')
 		return nil
 	end
 
@@ -72,17 +70,24 @@ end
 M.endwise_cr = function()
 	-- check enabled
 	if not Config.get().endwise_cr.enabled then
-		vim.print('not enabled')
+		-- vim.print('not enabled')
 		return false
 	end
 
 	-- don't apply endwise if no rules for filetype
 	local rules = endwise_rules[vim.bo.filetype]
 	if not rules then
-		vim.print('no rules')
+		-- vim.print('no rules')
 		return false
 	end
 	local endwordlist = endword_lists[vim.bo.filetype]
+
+	-- update parser, if treesitter is not existed in this language
+	local parser = vim.treesitter.get_parser()
+	if not parser then
+		return false
+	end
+	parser:parse()
 
 	-- check endwise pattern
 	---@class rule

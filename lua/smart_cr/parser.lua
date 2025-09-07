@@ -1,94 +1,36 @@
 local M = {}
+-- class definition for BFS
+---@class smart_cr.bfs.queue
+---@field [string] smart_cr.bfs.queue.item[]
 
--- check current node under cursor is target_node
----@param targets table target node to check this region under cursor is the node
----@return TSNode? Object of treesitter tree
-M.is_node = function(targets)
-	-- use get_parser():parse() to update treesitter result manually.
-	local parser = vim.treesitter.get_parser()
-	if not parser then -- if treesitter is not existed in this language
-		return nil
-	end
-	parser:parse() -- update parse
+---@class smart_cr.bfs.queue.item
+---@field node TSNode
+---@field depth number depth on tree
+---@field parent string node name of parent
 
-	-- get current node
-	local snode = vim.treesitter.get_node({ignore_injections = false})
-	-- vim.print(snode:type())
-	if not snode then
-		return nil
-	end
 
-	-- get current cursor position
-	local cursor = vim.api.nvim_win_get_cursor(0)
-	cursor[1] = cursor[1] - 1
 
-	-- check current node is worth checking,
-	-- if line is not start node, don't add endwise, like comment / comment block / wrong endwise
-	-- get root node at where cursor is
-	---@type TSNode?
-	local pnode = snode
-	while pnode do
-		local start_row = pnode:range()
-		if start_row ~= cursor[1] then
-			break
-		end
-		if vim.tbl_contains(targets, pnode:type()) then
-			snode = pnode -- remember if the node is valid to use endwise
-			-- some superior node is enclosed by (block)
-		end
-		pnode = pnode:parent()
-	end
-
-	-- vim.print(snode:type())
-	-- vim.print({snode:range()})
-	if vim.tbl_contains(targets, snode:type()) then
-		return snode
-	end
-
-	return nil
-end
-
+-- do func() for all children nodes using breadth-first-search
 ---@param root TSNode
----@param endwordlist EndwordList endword list of current filetype
-local function bfs(root, endwordlist)
-	local endword = endwordlist['currentnode']
+---@param endwordlist EndwordList? endword list of current filetype
+---@param func fun(node:smart_cr.bfs.queue.item, endwordlist:EndwordList?, memory:table?): table?
+local function for_nodes(root, endwordlist, func)
+
+	---@type smart_cr.bfs.queue
 	local queue = {{node = root, depth = 0, parent = ''}} -- start node
 	local front = 1 -- bfs using index, no table.remove
 	local back = 1
 
-	local endwise_nodes = {}
-	local end_rows = {} -- list about line number of end of region
+	local memory = {}
 	while front <= back do
-
-
 		-- go to next node
 		local current = queue[front]
 		front = front + 1
 
-		-- TODO: what you want to do
-		-- consider only endwise node
-		if endwordlist[current.node:type()] then
-
-			-- 1) check each node has proper endword
-			local endword_snode = vim.treesitter.get_node_text(current.node, 0)
-			local has_endword = vim.endswith(endword_snode, endword) -- don't use word from vim.inspect
-			if not has_endword then
-				-- vim.print('-----------------------------' .. current.node:type() .. ' not has endword')
-				return endword
-			end
-
-			-- 2) check node's end row is duplicated
-			local end_row = current.node:end_()
-			if vim.tbl_contains(end_rows, end_row) then
-				-- vim.print('----------------------------- duplicated end row')
-				return endword
-			end
-			table.insert(end_rows, end_row)
-			table.insert(endwise_nodes, current.node)
-
-			-- check
-			-- local range = {current.node:range()}
-			-- vim.print('[' .. current.depth .. '-' .. current.parent .. ']  ' .. current.node:type() .. ' -- ' .. range[1] .. ' ' .. range[3] .. '//' .. tostring(current.node:named()) .. '//' .. tostring(has_endword))
+		-- Do something
+		local result = func(current, endwordlist, memory)
+		if result then
+			return result
 		end
 
 		-- add only node, not field. (ex, class_definition(O), classdef(X) )
@@ -101,6 +43,84 @@ local function bfs(root, endwordlist)
 	return nil
 end
 
+-- find root node
+---@param snode TSNode? Start node to detect root node
+---@param at_cursor boolean if true, find root which is at cursor line
+---@param endwordlist string[] if it is valid, find root which is included in endwordlist
+---@return TSNode? root node
+local function get_root_node(snode, at_cursor, endwordlist)
+	at_cursor = at_cursor or false
+
+	-- get current node if snode is nil
+	if not snode then
+		snode = vim.treesitter.get_node({ignore_injections = false})
+		if not snode then
+			return nil
+		end
+	end
+	-- vim.print(snode:type())
+
+	-- get current cursor position
+	local cursor = vim.api.nvim_win_get_cursor(0)
+	cursor[1] = cursor[1] - 1
+
+	-- check current node is worth checking,
+	-- if line is not start node, don't add endwise, like comment / comment block / wrong endwise
+	-- get root node at where cursor is
+	---@type TSNode?
+	local pnode, root = snode, snode
+	while pnode do
+		local start_row = pnode:range()
+
+		if at_cursor and start_row ~= cursor[1] then
+			break
+		end
+
+		if not endwordlist or endwordlist[pnode:type()] then
+			root = pnode
+		end
+		pnode = pnode:parent()
+	end
+
+	return root
+end
+
+
+
+-- check current node under cursor is target_node
+---@param targets table target node to check this region under cursor is the node
+---@return TSNode? Object of treesitter tree
+M.is_node = function(targets)
+	table.insert(targets, 'ERROR') -- consider ERROR node automatically
+
+	-- get root
+	local root = get_root_node(nil, true)
+	if not root then
+		return nil
+	end
+
+	local cursor = vim.api.nvim_win_get_cursor(0)
+	cursor[1] = cursor[1] - 1
+
+	-- get child belongs to {target} at cursor line
+	---@param item smart_cr.bfs.queue.item
+	local function get_child_node(item)
+		local node = item.node
+		local start_row = node:range()
+		if start_row == cursor[1] and vim.tbl_contains(targets, node:type()) then
+			return {node}
+		end
+		return nil
+	end
+
+	local node = for_nodes(root, nil, get_child_node)
+	if node then
+		return node[1]
+	end
+
+	return nil
+end
+
 
 
 ---@param snode TSNode start node
@@ -108,54 +128,57 @@ end
 ---@return string? endword of snode
 M.is_endwised = function(snode, endwordlist)
 
-	-- add endword for ERROR node
-	local _endwordlist = endwordlist
-	_endwordlist['ERROR'] = _endwordlist['currentnode']
-
 	-- get root node which has endwise structure from cursor region
-	---@type TSNode?
-	local pnode, root = snode, snode
-	while pnode do
-		if _endwordlist[pnode:type()] then
-			root = pnode
-		end
-		pnode = pnode:parent()
+	local root = get_root_node(snode, false, endwordlist)
+	if not root then
+		return nil
 	end
-	-- vim.print('root -- ' .. root:type())
+	vim.print('root -- ' .. root:type())
 
-	-- check all children nodes have wrong end
-	local endword = bfs(root, _endwordlist)
-	-- vim.print('result is --' .. tostring(endword))
+	-- add 'ERROR' node to check endword
+	local endword = endwordlist['currentnode']
+	local _endwordlist = vim.tbl_deep_extend('keep', {ERROR = endword}, endwordlist)
 
-	-- check current node has wrong end
-	-- pnode = snode:parent()
-	-- while pnode do
-	-- 	-- if endword is not existed
-	-- 	local endword_snode = vim.treesitter.get_node_text(snode, 0)
-	-- 	local has_endword = vim.endswith(endword_snode, endword) -- don't use word from vim.inspect
-	-- 	if not has_endword then
-	-- 		return endword
-	-- 	end
-	--
-	-- 	if _endwordlist[pnode:type()] then
-	-- 		local range_pnode = {pnode:range()}
-	--
-	-- 		vim.print('(snode)' .. snode:type() .. ' : ' .. '{' .. range_snode[1] .. ' ' .. range_snode[2] .. ' ' .. range_snode[3] .. ' ' .. range_snode[4] .. '}')
-	-- 		-- vim.print('(snode) : ' .. vim.inspect(vim.treesitter.get_node_text(snode, 0)))
-	-- 		vim.print('(snode) : ' .. tostring(snode:end_()))
-	-- 		vim.print('(pnode)' .. pnode:type() .. ' : ' .. '{' .. range_pnode[1] .. ' ' .. range_pnode[2] .. ' ' .. range_pnode[3] .. ' ' .. range_pnode[4] .. '}')
-	-- 		-- vim.print('(pnode) : ' .. vim.inspect(vim.treesitter.get_node_text(pnode, 0)))
-	-- 		vim.print('(pnode) : ' .. tostring(pnode:end_()))
-	--
-	-- 		if (range_pnode[3] == range_snode[3]) then -- if two node has same row at end
-	-- 			return endword
-	-- 		end
-	-- 		snode = pnode
-	-- 	end
-	-- 	pnode = pnode:parent()
-	-- end
+	---@param item smart_cr.bfs.queue.item
+	---@param ewlist EndwordList
+	---@param memory table
+	local function check_endword(item, ewlist, memory)
+		local node = item.node
 
-	return endword
+		if ewlist[node:type()] then
+
+			-- 1) check each node has proper endword
+			-- vim.print('-----------------------------' .. node:type() .. '--------------------')
+			local endword_snode = vim.split(vim.treesitter.get_node_text(node, 0), '\n', {plain = true})
+			local has_endword = endword_snode[#endword_snode]:match('^%s*' .. endword .. '%s*$')
+			if not has_endword then
+				-- vim.print('-----------------------------' .. node:type() .. ' not has endword')
+				return {endword}
+			end
+
+			-- 2) check node's end row is duplicated
+			local end_row = node:end_()
+			if vim.tbl_contains(memory, end_row) then
+				-- vim.print('----------------------------- duplicated end row')
+				return {endword}
+			end
+			table.insert(memory, end_row)
+
+			-- -- check
+			-- local range = {node:range()}
+			-- vim.print('[' .. item.depth .. '-' .. item.parent .. ']  ' .. node:type() .. ' -- ' .. range[1] .. ' ' .. range[3] .. '//' .. tostring(node:named()) .. '//' .. tostring(has_endword) )
+		end
+
+		return nil
+	end
+
+	-- check current nodes is already endwised
+	local final_endword = for_nodes(root, _endwordlist, check_endword)
+	if final_endword then
+		return final_endword[1]
+	end
+
+	return nil
 end
 
 -- check the cursor is inside of brackets
