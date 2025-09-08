@@ -66,8 +66,11 @@ local function is_valid(line, rule, endwordlist)
 end
 
 -- <CR> with endwise
+---@param mode string '<CR>|o'
 ---@return boolean Whether this function is executed
-M.endwise_cr = function()
+M.endwise_cr = function(mode)
+	mode = mode or '<CR>'
+
 	-- check enabled
 	if not Config.get().endwise_cr.enabled then
 		-- vim.print('not enabled')
@@ -102,12 +105,21 @@ M.endwise_cr = function()
 
 		if is_valid(ctx.line, rule, endwordlist) then
 			-- add endword
-			vim.api.nvim_buf_set_lines(0, ctx.lnum-1, ctx.lnum, false, {
-				ctx.before,
-				ctx.cur_indent,
-				ctx.prev_indent .. rule.endword .. ctx.after,
-			})
-			vim.api.nvim_win_set_cursor(0, {ctx.lnum+1, ctx.cur_indent_count+1})
+			if mode == '<CR>' then
+				vim.api.nvim_buf_set_lines(0, ctx.lnum-1, ctx.lnum, false, {
+					ctx.before,
+					ctx.cur_indent,
+					ctx.prev_indent .. rule.endword .. ctx.after,
+				})
+				vim.api.nvim_win_set_cursor(0, {ctx.lnum+1, ctx.cur_indent_count+1})
+			elseif mode == 'o' then
+				vim.api.nvim_buf_set_lines(0, ctx.lnum, ctx.lnum, false, {
+					ctx.cur_indent,
+					ctx.prev_indent .. rule.endword,
+				})
+				vim.api.nvim_win_set_cursor(0, {ctx.lnum+1, ctx.cur_indent_count+1})
+				vim.cmd('startinsert!')
+			end
 			return true
 		end
 	end

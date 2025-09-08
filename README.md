@@ -147,10 +147,11 @@ vim.keymap.set('i', '<CR>', function()
   -- The order of calls order between bracket and endwise doesn't matter
   -- you can use 'endwise_cr()' independently
   local bracket = require('smart_cr').bracket.bracket_cr()
-  local endwise = require('smart_cr').endwise.endwise_cr()
+  -- if you leave arguments empty in endwise_cr(), It would operate like endwise_cr('<CR>')
+  local endwise = require('smart_cr').endwise.endwise_cr('<CR>')
 
   if not bracket and not endwise then
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
   end
 end, { noremap = true, silent = true, desc = 'Smart enter' })
 ```
@@ -169,6 +170,30 @@ There are some purpose to make endwise feature.
 	  shown differently according to statement location in context.
 	- I was confused about how to configure it according to the language and
 	  why it didn't work even though I wrote it the same way.
+
+## 3) `o` for endwise
+
+```lua
+-- before (wherever cursor is)
+if a==b| then
+
+-- after
+if a==b then
+  |
+end
+```
+
+To implement this, you can set keymap like this
+
+```lua
+vim.keymap.set('n', 'o', function()
+  local endwise = require('smart_cr').endwise.endwise_cr('o')
+
+  if not endwise then
+    vim.api.nvim_feedkeys('o', "n", false)
+  end
+end, { noremap = true, silent = true, desc = 'Smart o' })
+```
 
 
 ### _Main point to configure_
