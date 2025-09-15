@@ -142,6 +142,10 @@ M.is_endwised = function(snode, endwordlist)
 	local endword = endwordlist['currentnode']
 	local _endwordlist = vim.tbl_deep_extend('keep', {ERROR = endword}, endwordlist)
 
+	-- find commentmark and escaped
+	local commentstring = vim.o.commentstring
+	local commentmark = commentstring:gsub('%%s', ''):gsub('%s+$', ''):gsub('(.)', '%%%1')
+
 	---@type smart_cr.bfs.nodefunc
 	local function check_endword(item, ewlist, memory)
 		local node = item.node
@@ -152,6 +156,8 @@ M.is_endwised = function(snode, endwordlist)
 			Debug.debug_print('-----------------------------' .. node:type() .. '--------------------')
 			local endword_snode = vim.split(vim.treesitter.get_node_text(node, 0), '\n', {plain = true})
 			Debug.debug_print(endword_snode)
+			local has_endword = endword_snode[#endword_snode]:find('%s*' .. endword .. '%s*$') or false
+			has_endword = has_endword and not endword_snode[#endword_snode]:find(commentmark .. '%s+' .. endword .. '[^%w]*$')
 			if not has_endword then
 				Debug.debug_print ('-----------------------------' .. node:type() .. ' not has endword')
 				return {endword}
