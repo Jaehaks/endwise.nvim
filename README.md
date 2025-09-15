@@ -33,6 +33,7 @@ return {
 
 ```lua
 require('smart_cr').setup({
+  debug = false,
   bracket_cr = {
     enabled = true, -- on/off bracket_cr
     bracket_pairs = {
