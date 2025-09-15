@@ -1,4 +1,6 @@
 local M = {}
+local Debug = require('smart_cr.debug')
+
 -- class definition for BFS
 ---@class smart_cr.bfs.queue
 ---@field [string] smart_cr.bfs.queue.item[]
@@ -147,25 +149,25 @@ M.is_endwised = function(snode, endwordlist)
 		if ewlist[node:type()] then
 
 			-- 1) check each node has proper endword
-			-- vim.print('-----------------------------' .. node:type() .. '--------------------')
+			Debug.debug_print('-----------------------------' .. node:type() .. '--------------------')
 			local endword_snode = vim.split(vim.treesitter.get_node_text(node, 0), '\n', {plain = true})
-			local has_endword = endword_snode[#endword_snode]:match('^%s*' .. endword .. '%s*$')
+			Debug.debug_print(endword_snode)
 			if not has_endword then
-				-- vim.print('-----------------------------' .. node:type() .. ' not has endword')
+				Debug.debug_print ('-----------------------------' .. node:type() .. ' not has endword')
 				return {endword}
 			end
 
 			-- 2) check node's end row is duplicated
 			local end_row = node:end_()
 			if vim.tbl_contains(memory, end_row) then
-				-- vim.print('----------------------------- duplicated end row')
+				Debug.debug_print('----------------------------- duplicated end row')
 				return {endword}
 			end
 			table.insert(memory, end_row)
 
 			-- -- check
-			-- local range = {node:range()}
-			-- vim.print('[' .. item.depth .. '-' .. item.parent .. ']  ' .. node:type() .. ' -- ' .. range[1] .. ' ' .. range[3] .. '//' .. tostring(node:named()) .. '//' .. tostring(has_endword) )
+			local range = {node:range()}
+			Debug.debug_print('[' .. item.depth .. '-' .. item.parent .. ']  ' .. node:type() .. ' -- ' .. range[1] .. ' ' .. range[3] .. '//' .. tostring(node:named()) .. '//' .. tostring(has_endword) )
 		end
 
 		return nil

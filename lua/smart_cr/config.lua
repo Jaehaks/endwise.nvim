@@ -1,6 +1,7 @@
 local M = {}
 
 ---@class smart_cr.config
+---@field debug boolean show debug print at each step
 ---@field bracket_cr smart_cr.config.bracket_cr
 ---@field endwise_cr smart_cr.config.endwise_cr
 
@@ -23,6 +24,7 @@ local M = {}
 -- default configuration
 ---@type smart_cr.config
 local default_config = {
+	debug = false,
 	bracket_cr = {
 		enabled = true,
 		bracket_pairs = {

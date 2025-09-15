@@ -2,6 +2,7 @@ local M = {}
 local Config = require('smart_cr.config')
 local Parser = require('smart_cr.parser')
 local Utils = require('smart_cr.utils')
+local Debug = require('smart_cr.debug')
 
 -- endwise rules for current buffer's filetype
 ---@type EndwiseRules
@@ -52,13 +53,13 @@ local function is_valid(line, rule, endwordlist)
 	-- check current line has endwise already
 	local node = Parser.is_node(rule.ts_nodes)
 	if not node then
-		-- vim.print('not node')
+		Debug.debug_print('not node')
 		return nil
 	end
 
 	local endword = Parser.is_endwised(node, endwordlist)
 	if not endword then
-		-- vim.print('already endwised')
+		Debug.debug_print('already endwised')
 		return nil
 	end
 
